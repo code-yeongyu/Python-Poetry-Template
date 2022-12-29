@@ -6,7 +6,8 @@
             119
         ],
         "editor.codeActionsOnSave": {
-            "source.organizeImports": true
+            "source.organizeImports": true,
+            "source.fixAll": true
         }
     },
     "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python3",
