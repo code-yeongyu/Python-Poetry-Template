@@ -2,10 +2,10 @@
 
 This template is designed to make it easy to set up a Python project that is well-structured, organized, and easy to maintain. It comes pre-configured with several tools that will help you develop your project more efficiently, including:
 
-- Visual Studio Code integration: with the `RunOnSave` and `even-better-toml` extensions installed, you can format, lint, and type-check your code automatically every time you save a file.
+- Visual Studio Code integration: with the `RunOnSave`, `even-better-toml` and `ruff` extensions installed, you can format, lint, and type-check your code automatically every time you save a file.
 - Type checking: this template is configured to use `mypy` and `pyright` to automatically infer types when possible, without imposing strict typing requirements on your code.
-- Linting: `pylint` is configured to help you catch and fix code style issues.
-- Formatting: `yapf`, `isort`, `autoflake`, and `unify` are configured to help you keep your code clean and well-organized.
+- Linting: `ruff`, an extremely fast Python linter, written in Rust is configured well to help you catch and fix code style issues.
+- Formatting: `yapf`, `ruff`, and `unify` are configured to help you keep your code clean and well-organized.
 - Testing: `pytest` is configured to make it easy to run tests, and `pytest-cov` is configured to help you measure code coverage.
 - Dependency management: `poetry` is configured to help you manage your project's dependencies.
 - Toolkits: `invoke` is configured to provide a range of useful tasks, such as running your code, running tests, formatting your code, and checking your code style and types. These tasks are fully configurable in the [tasks.py](tasks.py) file.
@@ -20,6 +20,7 @@ cd Python-Poetry-Template
 poetry install
 code --install-extension emeraldwalk.RunOnSave
 code --install-extension tamasfe.even-better-toml
+code --install-extension charliermarsh.ruff
 ```
 
 ## Usage
