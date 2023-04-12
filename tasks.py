@@ -1,11 +1,11 @@
+# type: ignore
 import shutil
 
 import toml
-from colorama import Fore
-from colorama import init as init_colorama
 from invoke import Context, task
+from invoke.exceptions import UnexpectedExit
 
-import monkey_patch_invoke as _    # noqa
+import monkey_patch_invoke as _  # noqa: F401
 
 
 def get_pep8_compliant_name(project_name: str) -> str:
@@ -20,30 +20,19 @@ def get_project_path():
 
 
 @task
-def run(context: Context):
-    context.run(f'python {get_project_path()}/main.py', pty=True)
-
-
-@task
 def test(context: Context):
     context.run('pytest . --cov=. --cov-report=xml', pty=True)
 
 
 @task
-def format_code(context: Context) -> None:
-    init_colorama()
+def format_code(context: Context, verbose: bool = False):
+    commands = [
+        f'ruff --fix {get_project_path()}',
+        f'yapf --in-place --recursive --parallel {get_project_path()}',
+    ]
 
-    print(f'{Fore.MAGENTA}==========Remove unused imports with `autoflake`=========={Fore.RESET}')
-    context.run(f'pautoflake {get_project_path()}', pty=True)
-
-    print(f'{Fore.MAGENTA}==========Sort imports with `isort`=========={Fore.RESET}')
-    context.run(f'isort {get_project_path()}', pty=True)
-
-    print(f'{Fore.MAGENTA}==========Unifying quotes with `unify`=========={Fore.RESET}')
-    context.run(f'unify --in-place -r {get_project_path()}')
-
-    print(f'{Fore.MAGENTA}==========Format code with `yapf`=========={Fore.RESET}')
-    context.run(f'yapf --in-place --recursive --parallel {get_project_path()}', pty=True)
+    for command in commands:
+        context.run(command, pty=True)
 
 
 @task
@@ -54,33 +43,18 @@ def check(context: Context):
 
 @task
 def check_code_style(context: Context):
-    init_colorama()
+    commands = [
+        f'ruff {get_project_path()}',
+        f'yapf --diff --recursive --parallel {get_project_path()}',
+    ]
 
-    print(f'{Fore.MAGENTA}==========Check Code Styles with `autoflake`=========={Fore.GREEN}')
-    context.run(f'pautoflake {get_project_path()} --check', pty=True)
-
-    print(f'{Fore.MAGENTA}==========Check Code Styles with `isort`=========={Fore.GREEN}')
-    context.run(f'isort {get_project_path()} --check --diff', pty=True)
-    print(f'{Fore.GREEN}isort: Success{Fore.RESET}')
-
-    print(f'{Fore.MAGENTA}==========Check Code Styles with `pylint`=========={Fore.GREEN}')
-    context.run(f'pylint {get_project_path()}', pty=True)
-
-    print(f'{Fore.MAGENTA}==========Check Code Styles with `yapf`=========={Fore.RESET}')
-    context.run(f'yapf --diff --recursive --parallel {get_project_path()}', pty=True)
-    print(f'{Fore.GREEN}yapf: Success{Fore.RESET}')
+    for command in commands:
+        context.run(command, pty=True)
 
 
 @task
 def check_types(context: Context):
-    """Check types with `pyright` and `mypy`."""
-    init_colorama()
-
-    print(f'{Fore.CYAN}==========Check typings with `pyright`=========={Fore.RESET}')
     context.run(f'pyright {get_project_path()}', pty=True)
-
-    print(f'\n{Fore.CYAN}==========Check typings with `mypy`=========={Fore.RESET}')
-    context.run(f'mypy {get_project_path()}', pty=True)
 
 
 @task
@@ -99,3 +73,37 @@ def rename_project(_context: Context, project_name: str):
 
     with open('pyproject.toml', 'w', encoding='utf-8') as file:
         toml.dump(data, file)
+
+
+@task
+def release(context: Context, version: str) -> None:
+    '''Build & Publish to PyPI.'''
+
+    # load pyproject
+    pyproject_path = 'pyproject.toml'
+    pyproject_string = ''
+    with open(pyproject_path, 'r', encoding='utf-8') as pyproject_file:
+        pyproject_string = pyproject_file.read()
+    pyproject = toml.loads(pyproject_string)
+    # change version to today datetime
+    pyproject['tool']['poetry']['version'] = version
+    with open(pyproject_path, 'w', encoding='utf-8') as pyproject_file:
+        toml.dump(pyproject, pyproject_file)
+
+    # build & publish
+    try:
+        context.run(
+            '''
+                poetry build --no-interaction
+                poetry publish --no-interaction
+            ''',
+            pty=True,
+        )
+    except UnexpectedExit as exception:
+        with open(pyproject_path, 'w', encoding='utf-8') as pyproject_file:
+            pyproject_file.write(pyproject_string)
+        raise exception from exception
+
+    # recover to original
+    with open(pyproject_path, 'w', encoding='utf-8') as pyproject_file:
+        pyproject_file.write(pyproject_string)
